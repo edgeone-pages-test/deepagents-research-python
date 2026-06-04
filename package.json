@@ -4,9 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "edgeone makers dev",
-    "build": "edgeone makers build",
-    "deploy": "edgeone makers deploy"
+	  "dev": "vite",
+    "build": "vite build"
   },
   "dependencies": {
     "react": "^19.2.5",
