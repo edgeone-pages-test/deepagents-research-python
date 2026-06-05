@@ -18,6 +18,7 @@ from langchain.chat_models import init_chat_model
 from langchain.agents.middleware import (
     ModelRetryMiddleware,
     ToolRetryMiddleware,
+    ToolCallLimitMiddleware,
 )
 from langchain_core.messages import AIMessageChunk, ToolMessage
 from langchain_core.tools import StructuredTool
@@ -50,7 +51,7 @@ def _get_model(env: dict[str, str]):
     if _model is None:
         logger.log("Initializing model...")
         _model = init_chat_model(
-            model="@makers/minimax-m2.7",
+            model="@makers/hy3-preview",
             model_provider="openai",
             api_key=env["AI_GATEWAY_API_KEY"],
             base_url=env["AI_GATEWAY_BASE_URL"],
@@ -76,18 +77,21 @@ def _get_agent(model, checkpointer, store, context_tools):
                 "CRITICAL: You MUST respond in the EXACT same language as your task description. "
                 "If the task is in Chinese, your ENTIRE output must be in Chinese. If in English, respond in English.\n\n"
                 "Workflow:\n"
-                "1. Call web_search 2-3 times with different queries to gather information from multiple angles.\n"
-                "2. Once you have enough data, STOP searching and write your final summary immediately.\n\n"
-                "IMPORTANT: Do NOT keep searching endlessly. After 3 searches, you MUST write your summary "
-                "regardless of whether you feel the data is complete.\n\n"
+                "1. Call web_search 3-5 times with different queries to gather information from multiple angles.\n"
+                "2. After your searches complete, IMMEDIATELY write your final summary. Do NOT call web_search again.\n\n"
+                "HARD LIMIT: You may call web_search AT MOST 5 times total. After finishing your searches, "
+                "you MUST stop and write your summary — no exceptions, no \"let me search more\".\n\n"
                 "Output rules:\n"
-                "- Only output your summary text (under 500 English words or 300 Chinese characters) with source URLs.\n"
-                "- No raw JSON, no tool output echoes, no file operations."
+                "- After searching, output ONLY your summary text (under 600 Chinese characters or 400 English words).\n"
+                "- Do NOT narrate your search process (e.g. \"Let me search...\", \"I will look for...\").\n"
+                "- Do NOT echo raw JSON from tool results.\n"
+                "- Do NOT say you want to search more. Just write the summary."
             ),
             "tools": web_search_tools,
             "middleware": [
                 ModelRetryMiddleware(max_retries=3),
                 ToolRetryMiddleware(max_retries=2, tools=["web_search"]),
+                ToolCallLimitMiddleware(tool_name="web_search", run_limit=15),
             ],
         }
 
@@ -99,10 +103,12 @@ def _get_agent(model, checkpointer, store, context_tools):
                 "If the user writes in Chinese, ALL your output (plan text AND task descriptions) MUST be in Chinese. "
                 "If in English, use English.\n\n"
                 "Process:\n"
-                "1. In ONE single response: write a 1-2 sentence research plan, then immediately call all task tools together.\n"
-                "2. Delegate 2-3 sub-questions via the task tool. You MUST call ALL tasks in a SINGLE response at the same time for parallel execution. NEVER call tasks one by one across multiple turns.\n"
-                "3. Wait for ALL sub-agent results, then synthesize a concise final answer (under 600 English words or 400 Chinese characters) with citations.\n\n"
+                "1. On your FIRST response, you MUST call the task tool to delegate 2-3 sub-questions. "
+                "You may optionally include a brief plan sentence before the tool calls, but tool calls are MANDATORY in the first response.\n"
+                "2. Wait for ALL sub-agent results, then synthesize a concise final answer "
+                "(under 400 English words or 600 Chinese characters).\n\n"
                 "Rules:\n"
+                "- Your first response MUST contain task tool calls. Never respond with only text and no tool calls.\n"
                 "- ALL task tool calls MUST happen in ONE single model response — batch them together.\n"
                 "- Do NOT dispatch additional tasks after receiving sub-agent results.\n"
                 "- Task descriptions MUST be in the user's language.\n"
