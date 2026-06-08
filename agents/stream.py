@@ -5,8 +5,7 @@ Architecture: Lead Researcher delegates sub-questions to Expert Researcher
 subagents (with web_search), then synthesizes a final answer.
 
 Streaming: uses v2 format with stream_mode=["updates","messages"], subgraphs=True.
-Subagent correlation uses arrival-order matching (consistent with ToolNode dispatch order).
-Note: v3 streaming is not used due to SDK transformer key conflicts.
+Description-to-card matching at complete time uses ToolMessage content prefix comparison.
 """
 
 import asyncio
@@ -51,7 +50,7 @@ def _get_model(env: dict[str, str]):
     if _model is None:
         logger.log("Initializing model...")
         _model = init_chat_model(
-            model="@makers/hy3-preview",
+            model="@makers/deepseek-v4-flash",
             model_provider="openai",
             api_key=env["AI_GATEWAY_API_KEY"],
             base_url=env["AI_GATEWAY_BASE_URL"],
@@ -90,7 +89,7 @@ def _get_agent(model, checkpointer, store, context_tools):
             "tools": web_search_tools,
             "middleware": [
                 ModelRetryMiddleware(max_retries=3),
-                ToolRetryMiddleware(max_retries=2, tools=["web_search"]),
+                ToolRetryMiddleware(max_retries=1, tools=["web_search"]),
                 ToolCallLimitMiddleware(tool_name="web_search", run_limit=15),
             ],
         }
@@ -136,15 +135,9 @@ def _get_agent(model, checkpointer, store, context_tools):
 # ─── SSE event stream generator ───
 
 async def _event_stream(agent, message: str, conversation_id: str, utils):
-    """Async generator that yields SSE-formatted strings.
+    """Async generator that yields SSE-formatted events."""
 
-    Uses v2 streaming with arrival-order subagent correlation.
-    """
-
-    # Subagent correlation state
-    tool_call_to_subagent: dict[str, str] = {}
-    subagent_to_tool_call: dict[str, str] = {}
-    pending_tool_call_ids: list[str] = []
+    pending_descriptions: dict[str, str] = {}
     emitted_tool_call_ids: set[str] = set()
     emitted_tool_result_ids: set[str] = set()
     tool_call_id_to_name: dict[str, str] = {}
@@ -153,21 +146,6 @@ async def _event_stream(agent, message: str, conversation_id: str, utils):
         if not ns:
             return ""
         return ns[0].split(":", 1)[-1][:8]
-
-    def link_ids(tool_call_id: str, subagent_id: str) -> None:
-        if not tool_call_id or not subagent_id:
-            return
-        tool_call_to_subagent[tool_call_id] = subagent_id
-        subagent_to_tool_call[subagent_id] = tool_call_id
-        if tool_call_id in pending_tool_call_ids:
-            pending_tool_call_ids.remove(tool_call_id)
-
-    def resolve_both_ids(tool_call_id: str = "", subagent_id: str = "") -> tuple[str, str]:
-        if subagent_id and not tool_call_id:
-            tool_call_id = subagent_to_tool_call.get(subagent_id, "")
-        if tool_call_id and not subagent_id:
-            subagent_id = tool_call_to_subagent.get(tool_call_id, "")
-        return tool_call_id, subagent_id
 
     def send(event: dict) -> object:
         return utils.sse({k: v for k, v in event.items() if v not in ("", None)})
@@ -199,29 +177,24 @@ async def _event_stream(agent, message: str, conversation_id: str, utils):
                                 if tc.get("name") != "task":
                                     continue
                                 tc_id = tc.get("id") or ""
-                                pending_tool_call_ids.append(tc_id)
+                                desc = ((tc.get("args") or {}).get("description", "") or "")[:500]
+                                pending_descriptions[tc_id] = desc
                                 yield send({
                                     "type": "subagent_pending",
                                     "source": "main",
                                     "tool_call_id": tc_id,
                                     "subagent_type": (tc.get("args") or {}).get("subagent_type", "researcher"),
-                                    "description": ((tc.get("args") or {}).get("description", "") or "")[:500],
+                                    "description": desc,
                                 })
 
                     # (B) Subagent namespace → running + tool events
                     if is_subagent:
                         sa_id = extract_subagent_id(chunk_ns)
 
-                        if sa_id and sa_id not in subagent_to_tool_call and pending_tool_call_ids:
-                            link_ids(pending_tool_call_ids[0], sa_id)
-
-                        tc_id, sa_id = resolve_both_ids(subagent_id=sa_id)
-
                         yield send({
                             "type": "subagent_step",
                             "source": "subagent",
                             "subagent_id": sa_id,
-                            "tool_call_id": tc_id,
                         })
 
                         # Subagent model node → tool_calls
@@ -292,12 +265,24 @@ async def _event_stream(agent, message: str, conversation_id: str, utils):
                             if getattr(msg, "name", None) != "task":
                                 continue
                             raw_tc_id = getattr(msg, "tool_call_id", "") or ""
-                            tc_id, sa_id = resolve_both_ids(tool_call_id=raw_tc_id)
+
+                            raw_content = getattr(msg, "content", "")
+                            if isinstance(raw_content, str):
+                                content_text = raw_content
+                            elif isinstance(raw_content, list):
+                                content_text = "".join(
+                                    block.get("text", "") for block in raw_content
+                                    if isinstance(block, dict) and block.get("type") == "text"
+                                )
+                            else:
+                                content_text = ""
+
                             yield send({
                                 "type": "subagent_complete",
                                 "source": "main",
-                                "tool_call_id": tc_id,
-                                "subagent_id": sa_id,
+                                "tool_call_id": raw_tc_id,
+                                "description": pending_descriptions.get(raw_tc_id, ""),
+                                "content": content_text[:100],
                             })
 
                 continue
@@ -319,17 +304,14 @@ async def _event_stream(agent, message: str, conversation_id: str, utils):
                     continue
 
                 sa_id = ""
-                tc_id = ""
                 if is_subagent:
                     sa_id = extract_subagent_id(chunk_ns)
-                    tc_id, sa_id = resolve_both_ids(subagent_id=sa_id)
 
                 yield send({
                     "type": "ai",
                     "source": "subagent" if is_subagent else "main",
                     "content": content,
                     "subagent_id": sa_id,
-                    "tool_call_id": tc_id,
                 })
 
         # Check for errors stored in final state

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import type { SubAgentTask } from "../lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { DurationDisplay } from "./DurationDisplay";
@@ -15,6 +15,39 @@ function stripMarkdown(text: string): string {
     .replace(/!\[.*?\]\(.*?\)/g, "")
     .replace(/\[(.+?)\]\(.*?\)/g, "$1")
     .trim();
+}
+
+/** Animated title that slides up on text change. */
+function AnimatedTitle({ text }: { text: string }) {
+  const [displayText, setDisplayText] = useState(text);
+  const [animating, setAnimating] = useState(false);
+  const prevTextRef = useRef(text);
+
+  useEffect(() => {
+    if (text !== prevTextRef.current) {
+      prevTextRef.current = text;
+      setAnimating(true);
+      // Wait for exit animation, then swap text and enter
+      const timer = setTimeout(() => {
+        setDisplayText(text);
+        setAnimating(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [text]);
+
+  return (
+    <span
+      className="flex-1 truncate text-[13px] font-medium text-slate-700 inline-block transition-all duration-300 ease-out"
+      style={{
+        transform: animating ? "translateY(-8px)" : "translateY(0)",
+        opacity: animating ? 0 : 1,
+      }}
+      title={displayText}
+    >
+      {displayText}
+    </span>
+  );
 }
 
 /** A single collapsible SubAgent card. */
@@ -52,6 +85,14 @@ export function SubAgentCard({
     }
   }, [task.content, task.status, isOpen]);
 
+  // Resolve description: replace special markers with i18n text
+  function resolveDescription(desc: string): string {
+    if (desc === "__PENDING__") return t.taskPending;
+    if (desc === "__SUMMARIZING__") return t.taskSummarizing;
+    if (!desc) return `${task.subagentType || "researcher"} agent`;
+    return stripMarkdown(desc);
+  }
+
   const borderColor = {
     pending: "border-[#e2e8f0]",
     running: "border-slate-200",
@@ -83,16 +124,26 @@ export function SubAgentCard({
           {index}
         </span>
 
-        <svg className="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-        </svg>
+        {/* Phase-based icon */}
+        {task.description === "__PENDING__" ? (
+          <span className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-slate-200 border-t-teal-400" />
+        ) : task.description === "__SUMMARIZING__" ? (
+          <svg className="h-3.5 w-3.5 shrink-0 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+        ) : task.status === "complete" ? (
+          <svg className="h-3.5 w-3.5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        ) : (
+          <svg className="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+        )}
 
-        <span
-          className="flex-1 truncate text-[13px] font-medium text-slate-700"
-          title={stripMarkdown(task.description) || `${task.subagentType || "researcher"} agent`}
-        >
-          {stripMarkdown(task.description) || `${task.subagentType || "researcher"} agent`}
-        </span>
+        <AnimatedTitle
+          text={resolveDescription(task.description)}
+        />
 
         <DurationDisplay startedAt={task.startedAt} duration={task.duration} />
         <StatusBadge status={task.status} />
@@ -103,7 +154,7 @@ export function SubAgentCard({
         <div className="border-t border-slate-100">
           {/* Tool calls — one bordered chip per row */}
           {task.toolCalls.length > 0 && (
-            <ul className="flex flex-col gap-1.5 px-3 py-2 border-b border-slate-100 max-h-[154px] overflow-y-auto overscroll-contain">
+            <ul className="flex flex-col gap-1.5 px-3 py-2 border-b border-slate-100 max-h-[88px] overflow-y-auto overscroll-contain">
               {task.toolCalls.map((tc) => (
                 <li
                   key={tc.id}
@@ -160,24 +211,19 @@ export function SubAgentCard({
               </>
             ) : (
               <div className="flex items-center gap-2 py-2 text-slate-300">
-                {task.status === "running" ? (
-                  <>
-                    <span className="flex gap-1">
-                      {[0, 1, 2].map((i) => (
-                        <span
-                          key={i}
-                          className="inline-block h-1.5 w-1.5 rounded-full bg-teal-300"
-                          style={{
-                            animation: "bounce 1.4s infinite ease-in-out both",
-                            animationDelay: `${i * 0.16}s`,
-                          }}
-                        />
-                      ))}
-                    </span>
-                    <span className="text-xs">{t.taskWorking}</span>
-                  </>
-                ) : task.status === "pending" ? (
-                  <span className="text-xs">{t.taskQueued}</span>
+                {(task.status === "running" || task.status === "pending") ? (
+                  <span className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="inline-block h-1.5 w-1.5 rounded-full bg-teal-300"
+                        style={{
+                          animation: "bounce 1.4s infinite ease-in-out both",
+                          animationDelay: `${i * 0.16}s`,
+                        }}
+                      />
+                    ))}
+                  </span>
                 ) : task.status === "cancelled" ? (
                   <span className="text-xs text-slate-400">{t.taskCancelled}</span>
                 ) : (

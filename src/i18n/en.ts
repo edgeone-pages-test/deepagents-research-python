@@ -8,10 +8,10 @@ export const en: Translations = {
   welcomeSubtitle:
     "Ask a question and a team of expert researchers will search, analyze, and summarize the answer for you.",
   presetQuestions: [
+    "What's the latest news in the tech world?",
+    "What are the most popular programming languages?",
     "What are the pros and cons of React vs Vue.js?",
     "When to use PostgreSQL vs MySQL vs MongoDB?",
-    "What's the latest news in the tech world?",
-    "What are the most popular programming languages in the world?",
   ],
 
   inputPlaceholder: "Enter your research question…",
@@ -27,13 +27,9 @@ export const en: Translations = {
 
   specialistAgents: "Researchers",
   completed: "completed",
-  taskQueued: "Preparing…",
-  taskWorking: "Researching…",
-  taskComplete: "Complete",
-  taskError: "Error",
+  taskPending: "Preparing search…",
+  taskSummarizing: "Search done, writing summary…",
   taskCancelled: "Cancelled",
-  completedIn: "Completed in",
-  startedAt: "Started at",
   noContentYet: "Waiting for research results…",
   synthesizingResults: "Synthesizing research findings…",
   researchStopped: "Research stopped",

@@ -22,8 +22,6 @@ import type {
   ToolCallEntry,
 } from "../lib/types";
 
-// -- Helpers --
-
 let _id = 0;
 function uid(): string {
   return `msg-${++_id}-${Date.now()}`;
@@ -33,11 +31,7 @@ function toolCallUid(): string {
   return `tc-${++_id}-${Date.now()}`;
 }
 
-// -- Build a short, human-readable summary from tool args --
-//
-// Tries JSON.parse on the accumulated args string; if successful, picks a
-// reasonable display field per known tool, with a generic fallback that
-// works for any unknown tool (built-in or custom).
+// Build a short, human-readable summary from tool args.
 function buildArgSummary(toolName: string, rawArgs: string): string | undefined {
   if (!rawArgs) return undefined;
 
@@ -93,9 +87,6 @@ function nextOrder(): number {
   return ++_orderIdx;
 }
 
-// -- Hook --
-
-// localStorage key for conversation history list
 const CONVERSATIONS_KEY = 'deepagents-conversations';
 
 interface StoredConversation {
@@ -155,32 +146,20 @@ export function useAgentStream() {
   const abortRef = useRef<AbortController | null>(null);
   const wasCancelledRef = useRef(false);
 
-  // ConversationId: from URL ?id= param or generate a new one.
-  // Reset on new chat to start a fresh conversation.
+  // ConversationId: from URL ?id= param or generate new.
   const conversationIdRef = useRef<string>(getInitialConversationId());
-  // Track whether first message has been saved to localStorage
   const conversationSavedRef = useRef(false);
 
-  // Bidirectional mapping: subagent_id <-> card_id (tool_call_id)
+  // Mapping: subagent_id → card_id
   const saToCardRef = useRef<Map<string, string>>(new Map());
   const cardToGroupRef = useRef<Map<string, string>>(new Map());
 
-  // -- Resolve which card a subagent event belongs to --
+  // Two different tool_call_id namespaces:
+  //   1. Main agent's `task` tool_call_id = card id (lifecycle events)
+  //   2. Subagent's internal tool_call_id (tool invocations, NOT card id)
   //
-  // IMPORTANT: there are two different `tool_call_id` namespaces in play:
-  //   1. The MAIN agent's `task` tool_call_id — this IS the card id
-  //      (used as `SubAgentTask.id`). Lifecycle events (subagent_pending /
-  //      _step / _complete) carry this id.
-  //   2. The SUBAGENT's internal tool_call_id (e.g. for `internet_search`,
-  //      `write_todos`, ...). This is NOT a card id; it identifies a single
-  //      tool invocation inside the subagent and must NEVER be treated as
-  //      the card id, otherwise `updateTask` will silently miss every event
-  //      and tool chips will disappear.
-  //
-  // So:
-  //   - lifecycle events  -> resolveCardId({ preferToolCallId: true })
-  //   - subagent tool/AI  -> resolveCardId({ preferToolCallId: false })
-  //                          (resolve via subagent_id mapping only)
+  // lifecycle events  → resolveCardId({ preferToolCallId: true })
+  // subagent tool/AI  → resolveCardId({ preferToolCallId: false })
 
   function resolveCardId(
     event: StreamEvent,
@@ -282,7 +261,7 @@ export function useAgentStream() {
 
       function handleSubagentPending(event: StreamEvent) {
         const cardId = event.tool_call_id || uid();
-        const description = event.description || "";
+        const description = "__PENDING__";
         const subagentType = event.subagent_type || "researcher";
 
         if (synthesisStarted) {
@@ -348,38 +327,65 @@ export function useAgentStream() {
         if (cardId) {
           updateTask(cardId, (t) =>
             t.status === "pending"
-              ? { ...t, status: "running", startedAt: Date.now() }
+              ? { ...t, status: "running", subagentId: saId, startedAt: Date.now() }
               : t
           );
         }
       }
 
       function handleSubagentComplete(event: StreamEvent) {
-        const cardId = resolveCardId(event, { preferToolCallId: true });
-        if (cardId) {
-          updateTask(cardId, (t) => ({
-            ...t,
-            status: "complete",
-            duration: (Date.now() - t.startedAt) / 1000,
-            toolCalls: t.toolCalls.map((tc) => ({
-              ...tc,
-              status: "completed" as const,
-            })),
-          }));
-        }
+        const toolCallId = event.tool_call_id || "";
+        const contentPrefix = event.content || "";
+        const description = event.description || "";
+        if (!toolCallId) return;
 
         setSubAgentGroups((prev) => {
-          const allComplete = prev.every((g) =>
-            g.tasks.every((t) => {
-              if (t.id === cardId) return true;
-              return t.status === "complete";
-            })
+          // Match card by content prefix
+          let matchedCardId: string | null = null;
+
+          if (contentPrefix) {
+            const prefix = contentPrefix.slice(0, 50);
+            for (const group of prev) {
+              for (const task of group.tasks) {
+                if (task.content && task.content.startsWith(prefix)) {
+                  matchedCardId = task.id;
+                  break;
+                }
+              }
+              if (matchedCardId) break;
+            }
+          }
+
+          // Fallback: tool_call_id is also the card id
+          const targetCardId = matchedCardId || toolCallId;
+
+          const updated = prev.map((group) => ({
+            ...group,
+            tasks: group.tasks.map((task) =>
+              task.id === targetCardId
+                ? {
+                    ...task,
+                    description: description || task.description,
+                    status: "complete" as const,
+                    duration: (Date.now() - task.startedAt) / 1000,
+                    toolCalls: task.toolCalls.map((tc) => ({
+                      ...tc,
+                      status: "completed" as const,
+                    })),
+                  }
+                : task
+            ),
+          }));
+
+          const allComplete = updated.every((g) =>
+            g.tasks.every((t) => t.status === "complete")
           );
           if (allComplete && hasSeenSubAgents) {
             synthesisStarted = true;
             setPhase("synthesizing");
           }
-          return prev;
+
+          return updated;
         });
       }
 
@@ -448,25 +454,25 @@ export function useAgentStream() {
       }
 
       function handleSubagentAI(event: StreamEvent) {
-        // AI text from subagent: never use tool_call_id (which here would be
-        // the subagent's internal tool id) — resolve via subagent_id only.
         const cardId = resolveCardId(event, { preferToolCallId: false });
         const content = event.content || "";
         if (!cardId || !content) return;
 
-        updateTask(cardId, (t) => ({
-          ...t,
-          content: t.content + content,
-          status: t.status === "pending" ? "running" : t.status,
-        }));
+        updateTask(cardId, (t) => {
+          const allToolsDone = t.toolCalls.length > 0 &&
+            t.toolCalls.every((tc) => tc.status === "completed");
+          const shouldUpdateDesc = allToolsDone && !t.content;
+
+          return {
+            ...t,
+            content: t.content + content,
+            status: t.status === "pending" ? "running" : t.status,
+            ...(shouldUpdateDesc && { description: "__SUMMARIZING__" }),
+          };
+        });
       }
 
       function handleSubagentToolCall(event: StreamEvent) {
-        // The backend now emits one `tool_call` event per real tool
-        // invocation, with complete `name` and `args` already aggregated.
-        // No streaming/merge logic needed — just push a new entry.
-        // `tool_call_id` here is the inner per-invocation id (NOT the card
-        // id), so the card must be resolved via subagent_id.
         const cardId = resolveCardId(event, { preferToolCallId: false });
         if (!cardId) return;
 
@@ -475,12 +481,9 @@ export function useAgentStream() {
         if (!name) return;
 
         const args = event.args ?? "";
-        // Namespace the entry id so it never collides with a card id.
         const entryId = tcId ? `tc:${tcId}` : toolCallUid();
 
         updateTask(cardId, (t) => {
-          // Idempotent: if we somehow receive the same tool_call_id twice,
-          // don't duplicate the entry.
           if (tcId && t.toolCalls.some((tc) => tc.id === entryId)) return t;
 
           const entry: ToolCallEntry = {
@@ -490,8 +493,13 @@ export function useAgentStream() {
             args: args || undefined,
             argSummary: args ? buildArgSummary(name, args) : undefined,
           };
+
+          const argSummary = args ? buildArgSummary(name, args) : undefined;
+          const dynamicDesc = argSummary ? `${name} ${argSummary}` : name;
+
           return {
             ...t,
+            description: dynamicDesc,
             toolCalls: [...t.toolCalls, entry],
             status: t.status === "pending" ? "running" : t.status,
           };
@@ -506,7 +514,6 @@ export function useAgentStream() {
 
         updateTask(cardId, (t) => {
           const toolCalls = [...t.toolCalls];
-          // Prefer exact tool_call_id match; fall back to first pending.
           let idx = entryId
             ? toolCalls.findIndex((tc) => tc.id === entryId)
             : -1;

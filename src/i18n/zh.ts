@@ -7,10 +7,10 @@ export const zh: Translations = {
   welcomeTitle: "你想研究什么？",
   welcomeSubtitle: "提出一个问题，专家研究团队将为你搜索、分析并汇总答案。",
   presetQuestions: [
-    "React 和 Vue.js 各有什么优劣势？",
-    "PostgreSQL、MySQL 和 MongoDB 分别适合什么场景？",
     "最近科技圈有什么新闻？",
     "世界上最受欢迎的编程语言有哪些？",
+    "React 和 Vue.js 各有什么优劣势？",
+    "PostgreSQL、MySQL 和 MongoDB 怎么选？",
   ],
 
   inputPlaceholder: "输入你想研究的问题…",
@@ -26,13 +26,9 @@ export const zh: Translations = {
 
   specialistAgents: "研究员",
   completed: "已完成",
-  taskQueued: "准备中…",
-  taskWorking: "研究中…",
-  taskComplete: "已完成",
-  taskError: "出错",
+  taskPending: "正在准备搜索…",
+  taskSummarizing: "搜索完成，正在整理结论…",
   taskCancelled: "已取消",
-  completedIn: "耗时",
-  startedAt: "开始于",
   noContentYet: "等待研究结果…",
   synthesizingResults: "正在汇总研究结论…",
   researchStopped: "研究已停止",

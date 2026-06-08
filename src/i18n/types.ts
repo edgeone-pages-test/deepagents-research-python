@@ -21,13 +21,9 @@ export interface Translations {
 
   specialistAgents: string;
   completed: string;
-  taskQueued: string;
-  taskWorking: string;
-  taskComplete: string;
-  taskError: string;
+  taskPending: string;
+  taskSummarizing: string;
   taskCancelled: string;
-  completedIn: string;
-  startedAt: string;
   noContentYet: string;
   synthesizingResults: string;
   researchStopped: string;

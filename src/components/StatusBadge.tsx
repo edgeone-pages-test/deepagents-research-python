@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { SubAgentStatus } from "../lib/types";
 
 const statusConfig: Record<
@@ -11,7 +12,7 @@ const statusConfig: Record<
   cancelled: { color: "text-slate-500 bg-slate-100", label: "cancelled" },
 };
 
-const statusIcons: Record<SubAgentStatus, JSX.Element> = {
+const statusIcons: Record<SubAgentStatus, ReactNode> = {
   pending: (
     <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 8 8">
       <circle cx="4" cy="4" r="3" fill="none" stroke="currentColor" strokeWidth="1.5" />
