@@ -22,6 +22,7 @@ Deep Research Agent 将单个问题转化为多步骤的研究流程。主研究
 |------|------|------|
 | `AI_GATEWAY_API_KEY` | 是 | 模型网关 API Key。使用 **Makers Models API Key**，或任何 OpenAI 兼容的 Key。 |
 | `AI_GATEWAY_BASE_URL` | 是 | 网关地址。Makers Models 使用 `https://ai-gateway.edgeone.link/v1`。 |
+| `WSA_API_KEY` | 否 | 腾讯云联网搜索（WSA）API Key，用于平台内置搜索工具的鉴权。 |
 
 > 本模板遵循 **OpenAI 兼容标准**，可对接 Makers Models 或任何兼容的模型网关。
 
@@ -33,6 +34,16 @@ Deep Research Agent 将单个问题转化为多步骤的研究流程。主研究
 4. 将 Key 填入 `AI_GATEWAY_API_KEY`（`AI_GATEWAY_BASE_URL` 填写 `https://ai-gateway.edgeone.link/v1`）。
 
 内置模型（`@makers/deepseek-v4-flash`、`@makers/hy3-preview`、`@makers/minimax-m2.7`）免费但有频率限制，适合开发验证。生产环境建议在控制台绑定自有模型 Key（BYOK）。
+
+### 如何获取 `WSA_API_KEY`
+
+平台提供了内置的搜索工具，底层调用腾讯云联网搜索 API（Web Search API，WSA）。使用步骤：
+
+1. 在 [腾讯云联网搜索控制台](https://console.cloud.tencent.com/wsapi/index) 开通**联网搜索（WSA）**服务。
+2. 获取 API Key 并填入 `WSA_API_KEY`。
+3. 详细接入指引参考 [WSA API 文档](https://cloud.tencent.com/document/product/1806/130615)。
+
+> 如果不想使用腾讯云联网搜索 API，也可以自行接入第三方搜索服务（如 [Exa](https://exa.ai/docs/reference/search-api-guide-for-coding-agents)、[Tavily](https://docs.tavily.com/agents) 等），替换 `web_search` 工具实现即可。
 
 ## 本地开发
 

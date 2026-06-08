@@ -22,6 +22,7 @@ Deep Research Agent turns a single question into a multi-step research process. 
 |----------|----------|-------------|
 | `AI_GATEWAY_API_KEY` | Yes | Model gateway API key. Use your **Makers Models API Key**, or any OpenAI-compatible provider key. |
 | `AI_GATEWAY_BASE_URL` | Yes | Gateway base URL. For Makers Models, use `https://ai-gateway.edgeone.link/v1`. |
+| `WSA_API_KEY` | No | Tencent Cloud Web Search API (WSA) key for the platform's built-in search tool. |
 
 > This template follows the **OpenAI-compatible** standard — you can point these variables at Makers Models or any other compatible gateway / provider.
 
@@ -33,6 +34,16 @@ Deep Research Agent turns a single question into a multi-step research process. 
 4. Copy it into `AI_GATEWAY_API_KEY` (set `AI_GATEWAY_BASE_URL` to `https://ai-gateway.edgeone.link/v1`).
 
 Built-in models (`@makers/deepseek-v4-flash`, `@makers/hy3-preview`, `@makers/minimax-m2.7`) are free and rate-limited — great for prototyping. For production, bind your own provider key (BYOK) in the console.
+
+### How to get `WSA_API_KEY`
+
+The platform provides a built-in search tool powered by Tencent Cloud Web Search API (WSA). To use it:
+
+1. Enable the **Web Search (WSA)** service in the [Tencent Cloud WSA Console](https://console.cloud.tencent.com/wsapi/index).
+2. Obtain your API Key and set it as `WSA_API_KEY`.
+3. See the [WSA API Documentation](https://cloud.tencent.com/document/product/1806/130615) for details.
+
+> If you prefer not to use Tencent Cloud WSA, you can integrate a third-party search service (e.g. [Exa](https://exa.ai/docs/reference/search-api-guide-for-coding-agents), [Tavily](https://docs.tavily.com/agents)) by replacing the `web_search` tool implementation.
 
 ## Local Development
 
