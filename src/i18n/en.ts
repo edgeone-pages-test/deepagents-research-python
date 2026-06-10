@@ -17,7 +17,7 @@ export const en: Translations = {
   inputPlaceholder: "Enter your research question…",
   sendButton: "Send",
   stopButton: "Stop",
-  newChatButton: "New Chat",
+  newChatButton: "Home",
 
   phaseIdle: "Ready",
   phasePlanning: "Analyzing",
@@ -27,8 +27,8 @@ export const en: Translations = {
 
   specialistAgents: "Researchers",
   completed: "completed",
-  taskPending: "Preparing search…",
-  taskSummarizing: "Search done, writing summary…",
+  taskPending: "Preparing research…",
+  taskSummarizing: "Research done, writing summary…",
   taskCancelled: "Cancelled",
   noContentYet: "Waiting for research results…",
   synthesizingResults: "Synthesizing research findings…",

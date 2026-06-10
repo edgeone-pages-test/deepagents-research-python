@@ -16,7 +16,7 @@ export const zh: Translations = {
   inputPlaceholder: "输入你想研究的问题…",
   sendButton: "发送",
   stopButton: "停止",
-  newChatButton: "新对话",
+  newChatButton: "返回首页",
 
   phaseIdle: "就绪",
   phasePlanning: "分析问题中",
@@ -26,8 +26,8 @@ export const zh: Translations = {
 
   specialistAgents: "研究员",
   completed: "已完成",
-  taskPending: "正在准备搜索…",
-  taskSummarizing: "搜索完成，正在整理结论…",
+  taskPending: "正在准备研究…",
+  taskSummarizing: "研究完成，正在整理结论…",
   taskCancelled: "已取消",
   noContentYet: "等待研究结果…",
   synthesizingResults: "正在汇总研究结论…",

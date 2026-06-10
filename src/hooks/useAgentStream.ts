@@ -393,7 +393,25 @@ export function useAgentStream() {
         const content = event.content || "";
         if (!content) return;
 
-        if (hasSeenSubAgents && synthesisStarted) {
+        if (hasSeenSubAgents) {
+          // Auto-enter synthesis mode when main agent starts responding
+          // after subagents, even if not all subagents have completed.
+          if (!synthesisStarted) {
+            synthesisStarted = true;
+            setPhase("synthesizing");
+            // Force-complete any remaining running/pending subagent tasks
+            setSubAgentGroups((prev) =>
+              prev.map((group) => ({
+                ...group,
+                tasks: group.tasks.map((task) =>
+                  task.status === "running" || task.status === "pending"
+                    ? { ...task, status: "complete" as const, duration: task.startedAt ? (Date.now() - task.startedAt) / 1000 : 0 }
+                    : task
+                ),
+              }))
+            );
+          }
+
           if (!synthesisAssistantId) {
             const newId = uid();
             synthesisAssistantId = newId;
@@ -413,17 +431,6 @@ export function useAgentStream() {
               )
             );
           }
-          return;
-        }
-
-        if (hasSeenSubAgents && currentAssistantId) {
-          const newId = uid();
-          currentAssistantId = newId;
-          currentGroupId = null;
-          setMessages((prev) => [
-            ...prev,
-            { id: newId, role: "assistant", content, orderIdx: nextOrder() },
-          ]);
           return;
         }
 

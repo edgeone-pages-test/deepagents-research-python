@@ -329,7 +329,7 @@ async def _event_stream(agent, message: str, conversation_id: str, utils):
 
     except Exception as e:
         logger.error("Stream error:", str(e))
-        yield send({"type": "error", "source": "main", "content": f"Stream error: {type(e).__name__}: {str(e)[:200]}"})
+        yield send({"type": "error", "source": "main", "content": f"Stream error: {type(e).__name__}: {str(e)[:500]}"})
 
     yield utils.sse("[DONE]")
 

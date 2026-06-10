@@ -40,7 +40,6 @@ export function ChatPage() {
         phase={phase}
         hasMessages={hasMessages}
         onNewChat={resetChat}
-        isStreaming={isStreaming}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden">
