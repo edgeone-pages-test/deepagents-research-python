@@ -4,7 +4,7 @@
 
 **Framework:** Deep Agents · **Category:** Quick Start · **Language:** Python
 
-[![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/makers/new?template=deepagents-research-python&from=within&fromAgent=1&agentLang=python)
+[![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/makers/new?template=deepagents-research-starter-python&from=within&fromAgent=1&agentLang=python)
 
 ## 概览
 

@@ -60,7 +60,7 @@ export function Header({ phase, hasMessages, onNewChat }: HeaderProps) {
           href="https://github.com/TencentEdgeOne/deepagents-research-python"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center rounded-md p-1 text-slate-300 transition-colors hover:text-slate-500"
+          className="flex items-center justify-center rounded-md p-1 text-slate-400 transition-colors hover:text-slate-600"
           title="GitHub"
         >
           <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
