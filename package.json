@@ -1,5 +1,6 @@
 {
   "name": "deepagents-research-starter-python",
+  "description": "A research agent that answers questions with web search, built with Deep Agents.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
