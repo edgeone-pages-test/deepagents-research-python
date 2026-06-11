@@ -111,9 +111,9 @@ Agent 以**会话模式**运行：相同 `conversation_id` 的请求路由到同
 
 ## 相关资源
 
-- [Makers Agents 文档](https://pages.edgeone.ai/document/agents)
-- [快速开始：Agent 开发](https://pages.edgeone.ai/document/agents-quickstart)
-- [Makers Models](https://pages.edgeone.ai/document/models)
+- [Makers Agents 文档](https://cloud.tencent.com/document/product/1552/132759)
+- [快速开始：Agent 开发](https://cloud.tencent.com/document/product/1552/132786)
+- [Makers Models](https://cloud.tencent.com/document/product/1552/132748)
 
 ## License
 

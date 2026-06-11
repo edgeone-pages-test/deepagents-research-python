@@ -112,7 +112,7 @@ The `conversation_id` is passed via the `makers-conversation-id` request header.
 ## Resources
 
 - [Makers Agents Documentation](https://pages.edgeone.ai/document/agents)
-- [Quick Start: Agent Development](https://pages.edgeone.ai/document/agents-quickstart)
+- [Quick Start: Agent Development](https://pages.edgeone.ai/document/agents-quick-start)
 - [Makers Models](https://pages.edgeone.ai/document/models)
 
 ## License
