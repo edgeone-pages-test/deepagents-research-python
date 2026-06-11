@@ -67,6 +67,9 @@ export function Header({ phase, hasMessages, onNewChat }: HeaderProps) {
         </h1>
       </div>
 
+      {/* Divider: brand | navigation (only when nav items exist) */}
+      {(phase !== "idle" || hasMessages) && <span className="h-4 w-px bg-slate-300" />}
+
       {/* Phase indicator + Back — fixed width to prevent layout shift */}
       <div className="flex items-center gap-3 min-w-[130px]">
         {phase !== "idle" && (
