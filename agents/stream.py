@@ -1,5 +1,5 @@
 """
-Deep Research Agent — EdgeOne Pages handler (Python).
+Deep Research Agent — EdgeOne Makers handler (Python).
 
 Architecture: Lead Researcher delegates sub-questions to Expert Researcher
 subagents (with web_search), then synthesizes a final answer.
@@ -334,7 +334,7 @@ async def _event_stream(agent, message: str, conversation_id: str, utils):
     yield utils.sse("[DONE]")
 
 
-# ─── EdgeOne Pages handler ───
+# ─── EdgeOne Makers handler ───
 
 async def handler(context):
     conversation_id = getattr(context, "conversation_id", None)

@@ -1,7 +1,7 @@
 /**
  * useAgentStream — SSE streaming hook for the DeepAgents chat.
  *
- * Consumes the EdgeOne Pages SSE endpoint (POST /stream) and manages:
+ * Consumes the EdgeOne Makers SSE endpoint (POST /stream) and manages:
  * - messages[]       : the linear chat history
  * - subAgentGroups[] : batches of SubAgent cards, each triggered by a coordinator message
  * - phase            : current research phase (idle -> planning -> researching -> synthesizing -> complete)
