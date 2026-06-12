@@ -765,13 +765,7 @@ export function useAgentStream() {
         });
 
         if (!resp.ok) {
-          let errMsg = `HTTP ${resp.status}`;
-          try {
-            const text = await resp.text();
-            const body = JSON.parse(text);
-            if (body.error) errMsg += `: ${body.error}`;
-          } catch {}
-          throw new Error(errMsg);
+          throw new Error(`HTTP ${resp.status}`);
         }
         const data = await resp.json();
         const items: Array<
