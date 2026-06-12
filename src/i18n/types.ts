@@ -34,4 +34,7 @@ export interface Translations {
   recentConversations: string;
   loadingHistory: string;
   deleteConversation: string;
+
+  loadHistoryEmpty: string;
+  loadHistoryFailed: string;
 }

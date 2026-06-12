@@ -40,4 +40,7 @@ export const en: Translations = {
   recentConversations: "Recent Conversations",
   loadingHistory: "Loading conversation...",
   deleteConversation: "Delete",
+
+  loadHistoryEmpty: "This conversation has no history",
+  loadHistoryFailed: "Failed to load conversation history",
 };

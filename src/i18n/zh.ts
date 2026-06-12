@@ -39,4 +39,7 @@ export const zh: Translations = {
   recentConversations: "近期会话",
   loadingHistory: "加载会话中...",
   deleteConversation: "删除",
+
+  loadHistoryEmpty: "该对话暂无历史记录",
+  loadHistoryFailed: "加载对话历史失败",
 };

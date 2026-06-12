@@ -142,6 +142,7 @@ export function useAgentStream() {
   const [phase, setPhase] = useState<ResearchPhase>("idle");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const wasCancelledRef = useRef(false);
@@ -740,6 +741,7 @@ export function useAgentStream() {
     async (targetConversationId: string) => {
       if (isStreaming) return;
       setIsLoadingHistory(true);
+      setLoadError(null);
       setMessages([]);
       setSubAgentGroups([]);
       setPhase("idle");
@@ -762,7 +764,15 @@ export function useAgentStream() {
           body: JSON.stringify({ action: "history", conversationId: targetConversationId }),
         });
 
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        if (!resp.ok) {
+          let errMsg = `HTTP ${resp.status}`;
+          try {
+            const text = await resp.text();
+            const body = JSON.parse(text);
+            if (body.error) errMsg += `: ${body.error}`;
+          } catch {}
+          throw new Error(errMsg);
+        }
         const data = await resp.json();
         const items: Array<
           | { type: "user"; content: string }
@@ -846,9 +856,12 @@ export function useAgentStream() {
         setSubAgentGroups(restoredGroups);
         if (restoredMessages.length > 0) {
           setPhase("complete");
+        } else {
+          setLoadError("empty");
         }
       } catch (err) {
         console.error("Failed to load conversation history:", err);
+        setLoadError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setIsLoadingHistory(false);
       }
@@ -875,6 +888,8 @@ export function useAgentStream() {
     phase,
     isStreaming,
     isLoadingHistory,
+    loadError,
+    dismissLoadError: () => setLoadError(null),
     sendMessage,
     stopStreaming,
     resetChat,
