@@ -22,6 +22,7 @@ Deep Research Agent 将单个问题转化为多步骤的研究流程。主研究
 |------|------|------|
 | `AI_GATEWAY_API_KEY` | 是 | 模型网关 API Key。使用 **Makers Models API Key**，或任何 OpenAI 兼容的 Key。 |
 | `AI_GATEWAY_BASE_URL` | 是 | 网关地址。Makers Models 使用 `https://ai-gateway.edgeone.link/v1`。 |
+| `AI_GATEWAY_MODEL` | 否 | 模型 ID。默认为 `@makers/deepseek-v4-flash`（免费内置模型）。 |
 | `WSA_API_KEY` | 否 | 腾讯云联网搜索（WSA）API Key，用于平台内置搜索工具的鉴权。 |
 
 > 本模板遵循 **OpenAI 兼容标准**，可对接 Makers Models 或任何兼容的模型网关。

@@ -36,13 +36,16 @@ _agent = None
 
 def _get_env(context_env) -> dict[str, str]:
     source = context_env or {}
-    required = ("AI_GATEWAY_API_KEY", "AI_GATEWAY_BASE_URL")
-    missing = [k for k in required if not (source.get(k) or "").strip()]
+    api_key = (source.get("AI_GATEWAY_API_KEY") or "").strip()
+    base_url = (source.get("AI_GATEWAY_BASE_URL") or "").strip()
+    if not api_key or not base_url:
+        raise RuntimeError("Missing AI_GATEWAY_API_KEY or AI_GATEWAY_BASE_URL")
 
-    if missing:
-        raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
-
-    return {k: source[k] for k in required}
+    return {
+        "AI_GATEWAY_API_KEY": api_key,
+        "AI_GATEWAY_BASE_URL": base_url,
+        "AI_GATEWAY_MODEL": source.get("AI_GATEWAY_MODEL") or "@makers/deepseek-v4-flash",
+    }
 
 
 def _get_model(env: dict[str, str]):
@@ -50,7 +53,7 @@ def _get_model(env: dict[str, str]):
     if _model is None:
         logger.log("Initializing model...")
         _model = init_chat_model(
-            model="@makers/deepseek-v4-flash",
+            model=env["AI_GATEWAY_MODEL"],
             model_provider="openai",
             api_key=env["AI_GATEWAY_API_KEY"],
             base_url=env["AI_GATEWAY_BASE_URL"],
